@@ -12,5 +12,6 @@ urlpatterns = [
     path('search/', views.search),
     path('survey/', views.getSurvey),
     path('vote/', views.vote),
+    path('aditional-articles/<str:url>/', views.getAditionalArticles),
     path('<str:url>/', views.getArticle),
 ]

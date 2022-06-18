@@ -224,6 +224,6 @@ def changeTitleList(request):
 @csrf_exempt
 def addView(request):
     data = JSONParser().parse(request)
-    newView = View.objects.create(article = data['article'], user = data['user'])
+    newView = View.objects.create(article = data['article'], user = data.get('user'))
     newView.save()
     return JsonResponse("ok", safe=False)

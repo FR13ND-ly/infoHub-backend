@@ -1,7 +1,7 @@
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.parsers import JSONParser
 from django.http.response import JsonResponse
-from .models import Article, Survey, Variant, Vote
+from .models import Article, Survey, Variant, Vote, AditionalArticle
 from profiles.models import Profile
 from files.models import File
 from files.views import getFile
@@ -41,11 +41,18 @@ def getArticle(request, url):
     }
     return JsonResponse(response, safe=False)
 
+def getAditionalArticlesToEdit(url):
+    response = []
+    for aditionalArticle in AditionalArticle.objects.filter(sourceArticle = url):
+        response.append(aditionalArticle.sharedArticle)
+    return response
+
 def getArticleToEdit(request, url):
     article = Article.objects.get_or_create(url=url)[0]
     response = {
         "id": article.id,
         "title": article.title,
+        "url" : article.url,
         "text": article.text,
         "draft": article.draft,
         "framework" : article.framework,
@@ -55,16 +62,41 @@ def getArticleToEdit(request, url):
         "coverImage": article.coverImage,
         "imageUrl": getFile(article.coverImage),
         "coverImageDescription": article.coverImageDescription,
-        "surveys" : getSurveysToEdit(article.url)
+        "surveys" : getSurveysToEdit(article.url),
+        "aditionalArticles" : getAditionalArticlesToEdit(article.url)
     }
     return JsonResponse(response, safe=False)
 
+def fulfillAditionalArticles(url, articles):
+    for aditionalArticle in AditionalArticle.objects.filter(sourceArticle=url):
+        aditionalArticle.delete()
+    for article in articles:
+        AditionalArticle.objects.get_or_create(sourceArticle = url, sharedArticle = article)[0].save()
+    tag = Article.objects.get(url=url).tags.split(",")[0]
+    for article in Article.objects.filter(tags__contains=tag).filter(draft=False).order_by("-date"):
+        if (AditionalArticle.objects.filter(sourceArticle=url).count() > 2):
+            return
+        if article.url != url:
+            AditionalArticle.objects.get_or_create(sourceArticle = url, sharedArticle = article.url)[0].save()
+
+def getAditionalArticles(request, url):
+    response = []
+    print('a')
+    for aditionalArticle in AditionalArticle.objects.filter(sourceArticle=url):
+        print(url)
+        article = Article.objects.get(url = aditionalArticle.sharedArticle)
+        response.append({
+            "url": article.url,
+            "title": article.title,
+            "imageUrl": getFile(article.coverImage)
+        })
+    return JsonResponse(response, safe=False)
 
 @csrf_exempt
 def editArticle(request):
     data = JSONParser().parse(request)
     article = Article.objects.get(id=data['id'])
-    if (article.title != data['title']):
+    if (article.title == ''):
         article.url = createUrl(data['title'].replace(' ', '-'))
     article.title = data['title']
     article.subtitle = data['subtitle']
@@ -86,6 +118,7 @@ def editArticle(request):
         for variant in survey['variants']:
             Variant.objects.create(survey=newSurvey.id, content=variant[0]).save()
     article.save()
+    fulfillAditionalArticles(article.url, data.get('aditionalArticles', []))
     return JsonResponse(article.url, safe=False)
 
 def createUrl(title, id=-1):
@@ -146,7 +179,7 @@ def getSlider(request):
 def getRightSideArticles(request):
     response = []
     articles = Article.objects.filter(draft=False).order_by("-date")
-    for article in articles[5 : 9]:
+    for article in articles[5 : 8]:
         response.append({
             "url": article.url,
             "title": article.title,
