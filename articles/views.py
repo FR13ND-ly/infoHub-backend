@@ -6,8 +6,7 @@ from profiles.models import Profile
 from files.models import File
 from files.views import getFile
 from readlists.views import addView
-
-apiUrl = "http://infohub.pythonanywhere.com/api"
+from rest_framework import status
 
 
 def formatDate(date):
@@ -20,7 +19,7 @@ def formatDate(date):
 def getArticle(request, url):
     article = Article.objects.filter(url=url)
     if (not article.exists()):
-        return JsonResponse("Nu am găsit acest articol", safe=False)
+        return JsonResponse({}, status = status.HTTP_404_NOT_FOUND)
     article = article[0]
     article.views += 1
     article.save()
@@ -39,7 +38,7 @@ def getArticle(request, url):
         "coverImageDescription": article.coverImageDescription,
         "imageUrl": getFile(article.coverImage)
     }
-    return JsonResponse(response, safe=False)
+    return JsonResponse(response, status=status.HTTP_200_OK)
 
 def getAditionalArticlesToEdit(url):
     response = []
@@ -81,16 +80,18 @@ def fulfillAditionalArticles(url, articles):
 
 def getAditionalArticles(request, url):
     response = []
-    print('a')
     for aditionalArticle in AditionalArticle.objects.filter(sourceArticle=url):
-        print(url)
-        article = Article.objects.get(url = aditionalArticle.sharedArticle)
-        response.append({
-            "url": article.url,
-            "title": article.title,
-            "imageUrl": getFile(article.coverImage)
-        })
-    return JsonResponse(response, safe=False)
+        article = Article.objects.filter(url = aditionalArticle.sharedArticle)
+        if article.exists():
+            article = article[0]
+            response.append({
+                "url": article.url,
+                "title": article.title,
+                "imageUrl": getFile(article.coverImage)
+            })
+        else:
+            aditionalArticle.delete()
+    return JsonResponse(response, status=status.HTTP_200_OK, safe=False)
 
 @csrf_exempt
 def editArticle(request):
@@ -107,6 +108,7 @@ def editArticle(request):
     article.coverImage = data['coverImage']
     article.coverImageDescription = data["coverImageDescription"]
     article.framework = False
+    article.restrictComments = data.get('restrictComments', False)
     for survey in Survey.objects.filter(article=article.url):
         for variant in Variant.objects.filter(survey=survey.id):
             variant.delete()
@@ -119,7 +121,7 @@ def editArticle(request):
             Variant.objects.create(survey=newSurvey.id, content=variant[0]).save()
     article.save()
     fulfillAditionalArticles(article.url, data.get('aditionalArticles', []))
-    return JsonResponse(article.url, safe=False)
+    return JsonResponse(article.url, status=status.HTTP_200_OK, safe=False)
 
 def createUrl(title, id=-1):
     articles = Article.objects.filter(url=title)
@@ -152,18 +154,21 @@ def getArticles(request, index):
         "articles": articles,
         "noMoreArticles": (len(articles_total_raw) - 7 * (index - 1)) < 7
     }
-    return JsonResponse(response, safe=False)
+    return JsonResponse(response, status=status.HTTP_200_OK)
 
 def getDrafts(request):
     articles = []
     for article in Article.objects.filter(draft=True):
-        articles.append({
-            "url": article.url,
-            "title": article.title,
-            "text": article.text,
-            "imageUrl": getFile(article.coverImage)
-        })
-    return JsonResponse(articles, safe=False)
+        if article.title != "":
+            articles.append({
+                "url": article.url,
+                "title": article.title,
+                "text": article.text,
+                "imageUrl": getFile(article.coverImage)
+            })
+        else:
+            article.delete()
+    return JsonResponse(articles, status=status.HTTP_200_OK, safe=False)
 
 def getSlider(request):
     response = []
@@ -174,7 +179,7 @@ def getSlider(request):
             "title": article.title,
             "imageUrl": getFile(article.coverImage)
         })
-    return JsonResponse(response, safe=False)
+    return JsonResponse(response, status=status.HTTP_200_OK, safe=False)
 
 def getRightSideArticles(request):
     response = []
@@ -185,7 +190,7 @@ def getRightSideArticles(request):
             "title": article.title,
             "imageUrl": getFile(article.coverImage)
         })
-    return JsonResponse(response, safe=False)
+    return JsonResponse(response, status=status.HTTP_200_OK, safe=False)
 
 def getCategoryArticles(request, tag):
     response = []
@@ -195,11 +200,12 @@ def getCategoryArticles(request, tag):
             "title": article.title,
             "imageUrl": getFile(article.coverImage)
         })
-    return JsonResponse(response, safe=False)
+    return JsonResponse(response, status=status.HTTP_200_OK, safe=False)
 
-def deleteArticle(request, id):
-    article = Article.objects.get(id=id).delete()
-    return JsonResponse("ok", safe=False)
+@csrf_exempt
+def deleteArticle(request, url):
+    Article.objects.get(url=url).delete()
+    return JsonResponse(response, status=status.HTTP_200_OK)
 
 @csrf_exempt
 def search(request):
@@ -240,7 +246,7 @@ def search(request):
             for wordOfText in prepareWordList(article.text.split(' ')):
                 if prepare(word) in prepare(wordOfText) and articleToAppend not in response:
                     response.append(articleToAppend)
-    return JsonResponse(response, safe=False)
+    return JsonResponse(response, status=status.HTTP_200_OK, safe=False)
 
 def getSurveysToEdit(article):
     response = []
@@ -278,11 +284,11 @@ def getSurvey(request):
             }
             survey_raw['variants'].append(variant)
         surveys.append(survey_raw)
-    return JsonResponse(surveys, safe=False)
+    return JsonResponse(surveys, status=status.HTTP_200_OK, safe=False)
 
 @csrf_exempt
 def vote(request):
     data = JSONParser().parse(request)
     vote, created = Vote.objects.get_or_create(variant=data['id'], user=data['user'])
     vote.save() if created else vote.delete()
-    return JsonResponse("ok", safe=False)
+    return JsonResponse({}, status=status.HTTP_200_OK)

@@ -7,19 +7,20 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http.response import JsonResponse
 from rest_framework.parsers import JSONParser
 from profiles.models import Profile
+from rest_framework import status
 
 @csrf_exempt
 def getLightLists(request):
     data = JSONParser().parse(request)
     response = []
-    for ulist in List.objects.filter(user=data['user']):
+    for list in List.objects.filter(user=data.get('user')):
         response.append({
-            "id" : ulist.id,
-            "name": ulist.name,
-            "public": ulist.public,
-            "added": bool(ListItem.objects.filter(article=data['article'], List=ulist.pk))
+            "id" : list.id,
+            "name": list.name,
+            "public": list.public,
+            "added": bool(ListItem.objects.filter(article=data['article'], List=list.pk))
         })
-    return JsonResponse(response, safe=False)
+    return JsonResponse(response, status=status.HTTP_200_OK, safe=False)
 
 @csrf_exempt
 def addToList(request):
@@ -32,79 +33,92 @@ def addToList(request):
         nlist.save()
     else:
         nlist.delete()
-    return JsonResponse("ok", safe=False)
+    return JsonResponse({}, status=status.HTTP_200_OK)
 
 @csrf_exempt
 def getLists(request, token):
     response = []
-    historic_raw = View.objects.filter(user=token).order_by('-date')
+    historicRaw = View.objects.filter(user=token).order_by('-date')
     history = {
         "id": 'istoric',
         "name": "Istoric",
         "lastPreview": "",
         "preview": [],
         "icon" : "history",
-        "length": historic_raw.count()
+        "length": historicRaw.count()
     }
-    if len(historic_raw):
-        for historic in historic_raw[0: 3]:
-            if (not len(Article.objects.filter(url=historic.article))):
-                Article.objects.filter(url=historic.article).delete()
-            article = Article.objects.filter(url=historic.article)[0]
+    for historic in historicRaw:
+        if len(history['preview']) > 2:
+            break
+        article = Article.objects.filter(url=historic.article)
+        if article.exists():
+            article = article[0]
             history['preview'].append({
                 "title": article.title,
                 "url": article.url,
                 "imageUrl": getFile(article.coverImage)
             })
             history['lastPreview'] = getFile(article.coverImage)
+        else:
+            historic.delete()
     response.append(history)
-    likes_raw = Like.objects.filter(user=token).order_by('-date')
+    likesRaw = Like.objects.filter(user=token).order_by('-date')
     likes = {
         "id": 'aprecieri',
         "name": "Apreciate",
         "lastPreview": "",
         "preview": [],
         "icon" : "favorite",
-        "length": likes_raw.count()
+        "length": likesRaw.count()
     }
-    if len(likes_raw):
-        for like in likes_raw[0: 3]:
-            article = Article.objects.filter(url=like.article)[0]
+    for like in likesRaw:
+        if len(likes['preview']) > 2:
+            break
+        article = Article.objects.filter(url=like.article)
+        if article.exists():
+            article = article[0]
             likes['preview'].append({
                 "title": article.title,
                 "url": article.url,
                 "imageUrl": getFile(article.coverImage)
             })
             likes['lastPreview'] = getFile(article.coverImage)
+        else:
+            like.delete()
     response.append(likes)
-    for tlist in List.objects.filter(user=token).order_by('date'):
-        rlist_raw = ListItem.objects.filter(List=tlist.id)
-        rlist = {
-            "id": tlist.id,
-            "name": tlist.name,
+    for list in List.objects.filter(user=token).order_by('date'):
+        listItems = ListItem.objects.filter(List=list.id)
+        responseList = {
+            "id": list.id,
+            "name": list.name,
             "lastPreview": "",
             "preview": [],
-            "icon" : tlist.icon,
-            "length": rlist_raw.count()
+            "icon" : list.icon,
+            "length": listItems.count()
         }
-        if len(rlist_raw):
-            for listItem in rlist_raw[0: 3]:
-                article = Article.objects.get(url=listItem.article)
-                rlist['preview'].append({
+        for listItem in listItems:
+            if len(responseList['preview']) > 2:
+                break
+            article = Article.objects.filter(url=listItem.article)
+            if article.exists():
+                article = article[0]
+                responseList['preview'].append({
                     "title": article.title,
                     "url": article.url,
                     "imageUrl": getFile(article.coverImage)
                 })
-                rlist['lastPreview'] = getFile(article.coverImage)
-        response.append(rlist)
-    return JsonResponse(response, safe=False)
+                responseList['lastPreview'] = getFile(article.coverImage)
+            else:
+                listItem.delete()
+        response.append(responseList)
+    return JsonResponse(response, status=status.HTTP_200_OK, safe=False)
 
 
 @csrf_exempt
 def getListInfo(request):
     data = JSONParser().parse(request)
     if not data.get('user'):
-        return JsonResponse({}, safe=False)
+        return JsonResponse({}, status=status.HTTP_401_UNAUTHORIZED)
     user = Profile.objects.get(token=data.get('user'))
     response = {
         "name": '',
@@ -115,38 +129,40 @@ def getListInfo(request):
         "editable" : True,
         "icon" : ''
     }
-    articles_raw = []
     if data['id'] == -1:
-        response['length'] = len(View.objects.filter(user=data['user']))
+        response['length'] = View.objects.filter(user=data['user']).count()
         response['name'] = "Istoric"
         response['editable'] = False
     elif data['id'] == -2:
-        response['length'] = len(Like.objects.filter(user=data['user']))
+        response['length'] = Like.objects.filter(user=data['user']).count()
         response['name'] = "Aprecieri"
         response['editable'] = False
     else:
-        nList = List.objects.get(id=data['id'])
+        list = List.objects.get(id=data['id'])
+        if list.user != user.token and list.public:
+            return JsonResponse({}, status=status.HTTP_401_UNAUTHORIZED)
         response['length'] = len(ListItem.objects.filter(List=data['id']))
-        response['name'] = nList.name
-        response['public'] = not nList.public
-        response['own'] = nList.user == user.token
-        response['editable'] = nList.editable
-        response['icon'] = nList.icon
+        response['name'] = list.name
+        response['public'] = not list.public
+        response['own'] = list.user == user.token
+        response['editable'] = list.editable
+        response['icon'] = list.icon
         if (not response['own']):
             response['author'] = Profile.objects.get(
-                token=nList.user).user.username
-    return JsonResponse(response, safe=False)
+                token=list.user).user.first_name
+    return JsonResponse(response, status=status.HTTP_200_OK)
 
 
 @csrf_exempt
-def getListArticles(request, index=1):
+def getListArticles(request):
     data = JSONParser().parse(request)
+    index = data.get("index", 1)
     response = {
         "articles": [],
         "noMoreArticles": True,
     }
     if not data.get('user'):
-        return JsonResponse(response, safe=False)
+        return JsonResponse({}, status=status.HTTP_401_UNAUTHORIZED)
     articles_raw = []
     if data['id'] == -1:
         articles_raw = View.objects.filter(user=data['user']).order_by("-date")
@@ -172,7 +188,7 @@ def getListArticles(request, index=1):
             "text": article.text,
             "imageUrl": getFile(article.coverImage)
         })
-    return JsonResponse(response, safe=False)
+    return JsonResponse(response, status=status.HTTP_200_OK)
 
 
 @csrf_exempt
@@ -183,7 +199,7 @@ def addList(request):
         user=data['user'],
         public=data['access']
     )
-    return JsonResponse("ok", safe=False)
+    return JsonResponse({}, status=status.HTTP_201_CREATED)
 
 
 @csrf_exempt
@@ -191,15 +207,6 @@ def deleteList(request, id):
     List.objects.get(id=id).delete()
     for listItem in ListItem.objects.filter(List=id):
         listItem.delete()
-    return JsonResponse("ok", safe=False)
-
-
-@csrf_exempt
-def changePublicList(request):
-    data = JSONParser().parse(request)
-    nList = List.objects.get(id=data['id'])
-    nList.public = data['publicity']
-    nList.save()
     return JsonResponse("ok", safe=False)
 
 @csrf_exempt
@@ -210,20 +217,12 @@ def editList(request, id):
     readList.public = not data['public']
     readList.icon = data['icon']
     readList.save()
-    return JsonResponse("ok", safe=False)
-
-
-@csrf_exempt
-def changeTitleList(request):
-    data = JSONParser().parse(request)
-    nList = List.objects.get(id=data['id'])
-    nList.name = data['name']
-    nList.save()
-    return JsonResponse("ok", safe=False)
+    return JsonResponse({}, status=status.HTTP_200_OK)
 
 @csrf_exempt
 def addView(request):
     data = JSONParser().parse(request)
-    newView = View.objects.create(article = data['article'], user = data.get('user'))
-    newView.save()
-    return JsonResponse("ok", safe=False)
+    if Article.objects.filter(url = data.get('article')).exists():
+        newView = View.objects.create(article = data['article'], user = data.get('user'))
+        newView.save()
+    return JsonResponse({}, status=status.HTTP_201_CREATED)

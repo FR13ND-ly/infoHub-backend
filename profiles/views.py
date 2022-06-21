@@ -75,10 +75,15 @@ def updateUser(request):
     profile.allowWriteComments = data['allowWriteComments']
     profile.allowChangeAvatar = data['allowChangeAvatar']
     profile.save()
-    return JsonResponse("ok", safe=False, status = status.HTTP_200_OK)
+    return JsonResponse({}, status = status.HTTP_200_OK)
 
 def setDefaultAvatar(request, id):
     profile = Profile.objects.get(id = id)
     profile.image = 16
     profile.save()
-    return JsonResponse("ok", safe=False, status = status.HTTP_200_OK)
+    return JsonResponse({}, status = status.HTTP_200_OK)
+
+@csrf_exempt
+def deleteUser(request, id):
+    User.objects.get(id = Profile.objects.get(id = id).user.id).delete()
+    return JsonResponse({}, status = status.HTTP_200_OK)

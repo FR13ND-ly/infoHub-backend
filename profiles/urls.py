@@ -7,5 +7,6 @@ urlpatterns = [
     path('set-user-image/<str:token>/', views.setUserImage),
     path('all/', views.getAllUsers),
     path('update/', views.updateUser),
-    path('default-avatar/<int:id>/', views.setDefaultAvatar)
+    path('default-avatar/<int:id>/', views.setDefaultAvatar),
+    path('delete/<int:id>/', views.deleteUser)
 ]

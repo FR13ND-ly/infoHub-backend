@@ -3,6 +3,7 @@ from rest_framework.parsers import JSONParser
 from django.http.response import JsonResponse
 from .models import Widget
 from files.views import getFile
+from rest_framework import status
 
 def getWidget(request, id):
     widget = Widget.objects.get(id = id)
@@ -13,7 +14,7 @@ def getWidget(request, id):
         "author" : widget.author,
         "activated" : widget.activated
     }
-    return JsonResponse(response, safe=False)
+    return JsonResponse(response, status=status.HTTP_200_OK)
 
 def getWidgets(request):
     response = []
@@ -26,7 +27,7 @@ def getWidgets(request):
         "author" : widget.author,
         "activated" : widget.activated
     })
-    return JsonResponse(response, safe=False)
+    return JsonResponse(response, status=status.HTTP_200_OK, safe=False)
 
 @csrf_exempt
 def editWidget(request, id):
@@ -38,4 +39,4 @@ def editWidget(request, id):
     widget.author = data['author']
     widget.activated = data['activated']
     widget.save()
-    return JsonResponse("ok", safe=False)
+    return JsonResponse({}, status=status.HTTP_200_OK)

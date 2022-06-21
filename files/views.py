@@ -10,6 +10,7 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from PIL import Image
 import PIL
+from rest_framework import status
 
 
 apiUrl = "http://localhost:8000"
@@ -26,21 +27,21 @@ def getFiles(request, index):
             "name": file.file.name,
             "imageUrl": apiUrl + file.file.url
         })
-    return JsonResponse(response, safe=False)
+    return JsonResponse(response, status=status.HTTP_200_OK, safe=False)
 
 def removeFile(request, id):
     file = File.objects.get(id=id)
     if os.path.exists(os.getcwd().replace("\\", "/") + "/media/" + str(file.file)):
         os.remove(os.getcwd().replace("\\", "/") + "/media/" + str(file.file))
     file.delete()
-    return JsonResponse("ok", safe=False)
+    return JsonResponse(response, status=status.HTTP_200_OK, safe=False)
 
 @csrf_exempt
 def addFile(request):
     file = File.objects.create(file=request.FILES['file'])
     file.save()
     compressImage(file.id)
-    return JsonResponse(file.id, safe=False)
+    return JsonResponse(file.id, status=status.HTTP_200_OK, safe=False)
 
 
 def uploadFile(request, name=False, path="", hidden=False):
@@ -72,4 +73,4 @@ def getFile(id, path=""):
 def compressImage(id, path=""):
     image = settings.MEDIA_ROOT + path + '/' + os.path.basename(File.objects.get(id = id).file.name)
     im = Image.open(image)
-    im.save(image, optimize=True, quality = 30)
+    im.save(image, optimize=True, quality = 40)

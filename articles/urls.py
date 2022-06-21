@@ -14,4 +14,5 @@ urlpatterns = [
     path('vote/', views.vote),
     path('aditional-articles/<str:url>/', views.getAditionalArticles),
     path('<str:url>/', views.getArticle),
+    path('delete/<str:url>/', views.deleteArticle)
 ]

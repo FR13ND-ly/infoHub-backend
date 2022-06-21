@@ -4,6 +4,7 @@ from django.http.response import JsonResponse
 from .models import Comment
 from profiles.models import Profile
 from files.views import getFile
+from rest_framework import status
 
 apiUrl = "http://infohub.pythonanywhere.com/api"
 
@@ -19,7 +20,7 @@ def getComments(request, url):
             "date": comment.date,
             "photoUrl" : getFile(author.image, "users/")
         })
-    return JsonResponse(comments, safe=False)
+    return JsonResponse(comments, status=status.HTTP_200_OK, safe=False)
 
 @csrf_exempt
 def addComment(request):
@@ -29,10 +30,10 @@ def addComment(request):
         text=data['text'],
         article=data['article']
     ).save()
-    return JsonResponse("ok", safe=False)
+    return JsonResponse({}, status=status.HTTP_200_OK)
 
 
 @csrf_exempt
 def removeComment(request, id):
     Comment.objects.get(id=id).delete()
-    return JsonResponse("ok", safe=False)
+    return JsonResponse({}, status=status.HTTP_200_OK)
