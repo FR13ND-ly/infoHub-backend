@@ -56,9 +56,9 @@ def getLists(request, token):
             history['preview'].append({
                 "title": article.title,
                 "url": article.url,
-                "imageUrl": getFile(article.coverImage)
+                "imageUrl": getFile(article.coverImage, "/medium/")
             })
-            history['lastPreview'] = getFile(article.coverImage)
+            history['lastPreview'] = getFile(article.coverImage, "/medium/")
         else:
             historic.delete()
     response.append(history)
@@ -80,9 +80,9 @@ def getLists(request, token):
             likes['preview'].append({
                 "title": article.title,
                 "url": article.url,
-                "imageUrl": getFile(article.coverImage)
+                "imageUrl": getFile(article.coverImage, "/medium/")
             })
-            likes['lastPreview'] = getFile(article.coverImage)
+            likes['lastPreview'] = getFile(article.coverImage, "/medium/")
         else:
             like.delete()
     response.append(likes)
@@ -105,7 +105,7 @@ def getLists(request, token):
                 responseList['preview'].append({
                     "title": article.title,
                     "url": article.url,
-                    "imageUrl": getFile(article.coverImage)
+                    "imageUrl": getFile(article.coverImage, "/medium/")
                 })
                 responseList['lastPreview'] = getFile(article.coverImage)
             else:
@@ -186,7 +186,7 @@ def getListArticles(request):
             "url": article.url,
             "title": article.title,
             "text": article.text,
-            "imageUrl": getFile(article.coverImage)
+            "imageUrl": getFile(article.coverImage, "/small/")
         })
     return JsonResponse(response, status=status.HTTP_200_OK)
 

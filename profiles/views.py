@@ -50,7 +50,7 @@ def getUserAuthorization(request, token):
 @csrf_exempt
 def setUserImage(request, token):
     profile = Profile.objects.get(token = token)
-    profile.image = uploadFile(request, token, "/users/", hidden = True)
+    profile.image = uploadFile(request, token, "/users/", hidden = True, newSize=80)
     profile.save()
     return JsonResponse({}, status = status.HTTP_200_OK, safe=False)
 

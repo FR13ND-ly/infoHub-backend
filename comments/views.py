@@ -5,6 +5,7 @@ from .models import Comment
 from profiles.models import Profile
 from files.views import getFile
 from rest_framework import status
+from articles.views import formatDate
 
 apiUrl = "http://infohub.pythonanywhere.com/api"
 
@@ -17,7 +18,7 @@ def getComments(request, url):
             "text": comment.text,
             "username": author.user.first_name,
             "byStaff": author.user.is_staff,
-            "date": comment.date,
+            "date": formatDate(comment.date),
             "photoUrl" : getFile(author.image, "users/")
         })
     return JsonResponse(comments, status=status.HTTP_200_OK, safe=False)

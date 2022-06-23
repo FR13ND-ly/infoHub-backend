@@ -15,7 +15,9 @@ class Article(models.Model):
     restrictComments = models.BooleanField(default = False)
     tags = models.TextField()
     url = models.TextField()
-    coverImage = models.PositiveIntegerField(null= True)
+    coverImage = models.PositiveIntegerField(null=True)
+    coverImageMedium = models.PositiveIntegerField(null=True)
+    coverImageSmall = models.PositiveIntegerField(null=True)
     coverImageDescription = models.TextField(default='')
     views = models.PositiveIntegerField(default = 0)
 

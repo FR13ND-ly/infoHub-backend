@@ -3,6 +3,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.parsers import JSONParser
 from django.http.response import JsonResponse
 from .models import Like
+from articles.models import Article
 from rest_framework import status
 
 @csrf_exempt
@@ -10,7 +11,8 @@ def getLikes(request):
     data = JSONParser().parse(request)
     response = {
         "likes": Like.objects.filter(article=data['article']).count(),
-        "liked": "favorite" if Like.objects.filter(article=data['article'], user=data.get('user')) else "favorite_border"
+        "liked": "favorite" if Like.objects.filter(article=data['article'], user=data.get('user')) else "favorite_border",
+        "hideLikes": Article.objects.get(url = data['article']).hideLikes
     }
     return JsonResponse(response, status=status.HTTP_200_OK)
 

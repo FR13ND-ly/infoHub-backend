@@ -10,7 +10,7 @@ def getWidget(request, id):
     response = {
         "text" : widget.text,
         "link" : widget.link,
-        "imageUrl" : getFile(widget.image),
+        "imageUrl" : getFile(widget.image, "/medium/"),
         "author" : widget.author,
         "activated" : widget.activated
     }
@@ -22,7 +22,7 @@ def getWidgets(request):
         response.append({
         "text" : widget.text,
         "link" : widget.link,
-        "imageUrl" : getFile(widget.image),
+        "imageUrl" : getFile(widget.image, "/medium/"),
         "imageId" : widget.image,
         "author" : widget.author,
         "activated" : widget.activated
