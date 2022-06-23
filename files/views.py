@@ -13,7 +13,7 @@ import PIL
 from rest_framework import status
 
 
-apiUrl = "http://localhost:8000"
+apiUrl = "http://infohub.pythonanywhere.com"
 
 
 def getFiles(request, index):
