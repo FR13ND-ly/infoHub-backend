@@ -3,6 +3,7 @@ from rest_framework.parsers import JSONParser
 from django.http.response import JsonResponse
 from .models import Comment
 from profiles.models import Profile
+from articles.models import Article
 from files.views import getFile
 from rest_framework import status
 from articles.views import formatDate
@@ -19,7 +20,8 @@ def getComments(request, url):
             "username": author.user.first_name,
             "byStaff": author.user.is_staff,
             "date": formatDate(comment.date),
-            "photoUrl" : getFile(author.image, "users/")
+            "photoUrl" : getFile(author.image, "users/"),
+            "restrictComments" : Article.objects.get(url=url).restrictComments
         })
     return JsonResponse(comments, status=status.HTTP_200_OK, safe=False)
 

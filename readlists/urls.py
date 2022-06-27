@@ -12,4 +12,6 @@ urlpatterns = [
     path('edit/<str:id>/', views.editList),
     path('info/<str:pk>/', views.editList),
     path('delete/<str:id>/', views.deleteList),
+    path('read-later/', views.readLater),
+    path('remove-item/', views.removeItem)
 ]

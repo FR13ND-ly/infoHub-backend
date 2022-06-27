@@ -23,6 +23,7 @@ def getArticle(request, url):
     article.save()
     response = {
         "id": article.id,
+        "url": article.url,
         "title": article.title,
         "text": article.text,
         "subtitle": article.subtitle,
@@ -32,6 +33,7 @@ def getArticle(request, url):
             "date": formatDate(article.date),
             "hideViews": article.hideViews,
             "views": article.views,
+            "timeForRead": calculateTimeForRead(article.text)
         },
         "tags": article.tags.split(',' if article.tags.strip() else None),
         "coverImageDescription": article.coverImageDescription,
@@ -153,6 +155,7 @@ def getArticles(request, index):
                 "views": article.views,
                 "hideDate": article.hideDate,
                 "date": formatDate(article.date),
+                "timeForRead" : calculateTimeForRead(article.text)
             },
             "imageUrl": getFile(article.coverImage, "/small/")
         })
@@ -161,6 +164,10 @@ def getArticles(request, index):
         "noMoreArticles": (len(articles_total_raw) - 7 * (index - 1)) < 7
     }
     return JsonResponse(response, status=status.HTTP_200_OK)
+
+def calculateTimeForRead(text):
+    numberOfWords = len(text.split())
+    return numberOfWords / 130 * 60
 
 def getDrafts(request):
     articles = []
@@ -298,3 +305,17 @@ def vote(request):
     vote, created = Vote.objects.get_or_create(variant=data['id'], user=data['user'])
     vote.save() if created else vote.delete()
     return JsonResponse({}, status=status.HTTP_200_OK)
+
+@csrf_exempt
+def nextArticle(request):
+    data = JSONParser().parse(request)
+    response = {
+        "article" : '',
+        "noMoreArticles" : Article.objects.all().filter(draft=False).order_by("-date").count() == len(data) + 1
+    }
+    for article in Article.objects.all().filter(draft=False).order_by("-date"):
+        if article.url not in data:
+            response["article"] = article.url
+            break
+    return JsonResponse(response, status=status.HTTP_200_OK, safe=False)
+            

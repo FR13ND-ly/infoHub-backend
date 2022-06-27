@@ -11,9 +11,10 @@ from django.core.files.base import ContentFile
 from PIL import Image
 import PIL
 from rest_framework import status
+import environ
 
-
-apiUrl = "http://infohub.pythonanywhere.com"
+env = environ.Env()
+apiUrl = env('apiURL')
 
 
 def getFiles(request, index):
@@ -92,7 +93,7 @@ def compressImage(id, path=""):
     image = settings.MEDIA_ROOT + path + '/' + \
         os.path.basename(File.objects.get(id=id).file.name)
     im = Image.open(image)
-    im.save(image, optimize=True, quality=25)
+    im.save(image, optimize=True, quality=50)
 
 
 def resizeImage(id, path="/", newPath="/", newSize=25):

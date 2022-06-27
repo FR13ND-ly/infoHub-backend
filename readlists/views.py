@@ -226,3 +226,16 @@ def addView(request):
         newView = View.objects.create(article = data['article'], user = data.get('user'))
         newView.save()
     return JsonResponse({}, status=status.HTTP_201_CREATED)
+
+@csrf_exempt
+def readLater(request):
+    data = JSONParser().parse(request)
+    readLaterList = List.objects.filter(user=data['user'])[0]
+    ListItem.objects.get_or_create(List=readLaterList.id, article=data['article'])[0].save()
+    return JsonResponse({}, status=status.HTTP_200_OK)
+
+@csrf_exempt
+def removeItem(request):
+    data = JSONParser().parse(request)
+    ListItem.objects.get(List=data['list'], article=data['article']).delete()
+    return JsonResponse({}, status=status.HTTP_200_OK)
