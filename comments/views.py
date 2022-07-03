@@ -13,16 +13,19 @@ apiUrl = "http://infohub.pythonanywhere.com/api"
 def getComments(request, url):
     comments = []
     for comment in Comment.objects.filter(article=url).order_by("-date"):
-        author = Profile.objects.get(token=comment.author)
-        comments.append({
-            "id": comment.pk,
-            "text": comment.text,
-            "username": author.user.first_name,
-            "byStaff": author.user.is_staff,
-            "date": formatDate(comment.date),
-            "photoUrl" : getFile(author.image, "users/"),
-            "restrictComments" : Article.objects.get(url=url).restrictComments
-        })
+        if Profile.objects.filter(token=comment.author).exists():
+            author = Profile.objects.get(token=comment.author)
+            comments.append({
+                "id": comment.pk,
+                "text": comment.text,
+                "username": author.user.first_name,
+                "byStaff": author.user.is_staff,
+                "date": formatDate(comment.date),
+                "photoUrl" : getFile(author.image, "users/"),
+                "restrictComments" : Article.objects.get(url=url).restrictComments
+            })
+        else:
+            comment.delete()
     return JsonResponse(comments, status=status.HTTP_200_OK, safe=False)
 
 @csrf_exempt

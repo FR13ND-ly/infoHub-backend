@@ -16,8 +16,6 @@ class Article(models.Model):
     tags = models.TextField()
     url = models.TextField()
     coverImage = models.PositiveIntegerField(null=True)
-    coverImageMedium = models.PositiveIntegerField(null=True)
-    coverImageSmall = models.PositiveIntegerField(null=True)
     coverImageDescription = models.TextField(default='')
     views = models.PositiveIntegerField(default = 0)
 

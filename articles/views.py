@@ -231,6 +231,8 @@ def search(request):
                 wordList.remove(i)
         return wordList
     searchText = JSONParser().parse(request)['text']
+    if (not searchText):
+        return JsonResponse([], status=status.HTTP_200_OK, safe=False)
     wordsList = prepareWordList(searchText.strip().split(' '))
     response = []
     articles = Article.objects.filter(draft=False).order_by("-date")
