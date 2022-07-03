@@ -11,11 +11,8 @@ from django.core.files.base import ContentFile
 from PIL import Image
 import PIL
 from rest_framework import status
-import environ
 
-env = environ.Env()
-apiUrl = env('apiURL')
-
+apiUrl = "http://infohub.pythonanywhere.com"
 
 def getFiles(request, index):
     files = File.objects.filter(hidden=False).order_by('-date')
